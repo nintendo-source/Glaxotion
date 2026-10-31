@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "glaxotion",
+  "version": "${version}",
+  "name": "Glaxotion",
+  "description": "Local player identity and appearance customization.",
+  "authors": ["Glaxiblade"],
+  "contact": {
+    "sources": "https://github.com/nintendo-source/Glaxotion"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.glaxiblade.glaxotion.GlaxotionClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "26.1.1",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
