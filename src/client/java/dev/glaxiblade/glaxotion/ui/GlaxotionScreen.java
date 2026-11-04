@@ -106,5 +106,5 @@ public final class GlaxotionScreen extends Screen {
     }
 
     @Override
-    public void onClose() { if (minecraft != null) minecraft.gui.setScreen(null); }
+    public void onClose() { if (minecraft != null) minecraft.setScreen(null); }
 }
