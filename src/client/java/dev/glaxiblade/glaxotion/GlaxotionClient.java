@@ -31,7 +31,7 @@ public final class GlaxotionClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             GlaxotionState.TARGETS.tick(client);
             while (openScreen.consumeClick()) {
-                if (client.player != null) client.gui.setScreen(new GlaxotionScreen());
+                if (client.player != null) client.setScreen(new GlaxotionScreen());
             }
         });
         LOGGER.info("Glaxotion initialized. Press G to open the local identity studio.");
