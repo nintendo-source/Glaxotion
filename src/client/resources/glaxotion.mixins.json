@@ -4,7 +4,8 @@
   "package": "dev.glaxiblade.glaxotion.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
-    "AvatarRendererMixin"
+    "AvatarRendererMixin",
+    "EntityRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
