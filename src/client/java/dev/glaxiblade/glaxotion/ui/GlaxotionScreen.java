@@ -78,7 +78,18 @@ public final class GlaxotionScreen extends Screen {
         }).bounds(x + 178, y + 272, 150, 20).build());
     }
 
-    private String colorName() {\n        return switch (selectedColor) {\n            case 0xFF35D6FF -> "Cyan"; case 0xFFFFD34E -> "Gold"; case 0xFFFF5D73 -> "Coral";\n            case 0xFF8BFF9B -> "Mint"; case 0xFFB78CFF -> "Violet"; default -> "White";\n        };\n    }\n\n    private void newPreset() {
+    private String colorName() {
+        return switch (selectedColor) {
+            case 0xFF35D6FF -> "Cyan";
+            case 0xFFFFD34E -> "Gold";
+            case 0xFFFF5D73 -> "Coral";
+            case 0xFF8BFF9B -> "Mint";
+            case 0xFFB78CFF -> "Violet";
+            default -> "White";
+        };
+    }
+
+    private void newPreset() {
         loadedProfile = null;
         profileName.setValue("Preset " + (targetId == null ? 1 : GlaxotionState.IDENTITIES.profiles(targetId).size() + 1));
         skinUsername.setValue("");
