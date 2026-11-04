@@ -50,10 +50,42 @@ public final class GlaxotionScreen extends Screen {
         }).bounds(x + 18, y + 218, 112, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Save Profile"), b -> save()).bounds(x + 138, y + 218, 112, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Next Player"), b -> nextPlayer()).bounds(x + 258, y + 218, w - 276, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Clear Manual Target"), b -> {
-            GlaxotionState.TARGETS.clearManualTarget(); status = "Manual target cleared; Auto Target is active.";
-        }).bounds(x + 18, y + 244, 170, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Close"), b -> onClose()).bounds(x + w - 108, y + 244, 90, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("New Preset"), b -> newPreset())
+                .bounds(x + 18, y + 244, 104, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Next Preset"), b -> nextPreset())
+                .bounds(x + 128, y + 244, 104, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Auto Target"), b -> {
+            GlaxotionState.TARGETS.clearManualTarget();
+            status = "Manual target cleared; nearest player is selected automatically.";
+        }).bounds(x + 238, y + 244, w - 256, 20).build());
+    }
+
+    private void newPreset() {
+        loadedProfile = null;
+        profileName.setValue("Preset " + (targetId == null ? 1 : GlaxotionState.IDENTITIES.profiles(targetId).size() + 1));
+        skinUsername.setValue("");
+        displayedName.setValue("");
+        customTier.setValue("");
+        tier = PvpTier.HT3;
+        status = "New preset ready. Save it to add another profile for this player.";
+    }
+
+    private void nextPreset() {
+        if (targetId == null) { status = "Select a player first."; return; }
+        var profiles = GlaxotionState.IDENTITIES.profiles(targetId);
+        if (profiles.isEmpty()) { status = "This player has no saved presets yet."; return; }
+        int index = -1;
+        if (loadedProfile != null) {
+            for (int i = 0; i < profiles.size(); i++) if (profiles.get(i).id().equals(loadedProfile.id())) index = i;
+        }
+        loadedProfile = profiles.get((index + 1) % profiles.size());
+        GlaxotionState.IDENTITIES.select(targetId, loadedProfile.id());
+        profileName.setValue(loadedProfile.profileName());
+        skinUsername.setValue(loadedProfile.skinSourceUsername());
+        displayedName.setValue(loadedProfile.displayedName());
+        customTier.setValue(loadedProfile.customTierText());
+        tier = loadedProfile.tier();
+        status = "Loaded preset: " + loadedProfile.profileName();
     }
 
     private void save() {
