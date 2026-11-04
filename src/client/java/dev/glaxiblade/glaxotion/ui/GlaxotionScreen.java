@@ -69,7 +69,7 @@ public final class GlaxotionScreen extends Screen {
             status = "Profile saved locally. Skin lookup can be tested from the username field.";
             if (!skinUsername.getValue().isBlank()) {
                 GlaxotionState.SKINS.resolve(skinUsername.getValue()).thenAccept(result ->
-                        LOGGER.info("Skin lookup for {}: {}", skinUsername.getValue(), result.isPresent() ? "resolved" : "not found"));
+                        dev.glaxiblade.glaxotion.GlaxotionClient.LOGGER.info("Skin lookup completed: {}", result.isPresent() ? "resolved" : "not found"));
             }
         } catch (RuntimeException e) { status = "Could not save profile: " + e.getMessage(); }
     }
