@@ -68,14 +68,16 @@ public final class GlaxotionScreen extends Screen {
             colorIndex = (colorIndex + 1) % COLORS.length;
             selectedColor = COLORS[colorIndex];
             b.setMessage(Component.literal("Color: " + colorName()));
-        }).bounds(x + 18, y + 272, 150, 20).build());
+        }).bounds(x + 18, y + 272, 110, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Range: " + (int) GlaxotionState.TARGETS.range()), b -> {
             int current = 0;
             for (int i = 0; i < RANGES.length; i++) if (RANGES[i] == GlaxotionState.TARGETS.range()) current = i;
             double next = RANGES[(current + 1) % RANGES.length];
             GlaxotionState.TARGETS.setRange(next);
             b.setMessage(Component.literal("Range: " + (int) next));
-        }).bounds(x + 178, y + 272, 150, 20).build());
+        }).bounds(x + 138, y + 272, 110, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Delete Preset"), b -> deletePreset())
+                .bounds(x + 258, y + 272, 124, 20).build());
     }
 
     private String colorName() {
@@ -118,6 +120,33 @@ public final class GlaxotionScreen extends Screen {
         selectedColor = loadedProfile.textColor();
         for (int i = 0; i < COLORS.length; i++) if (COLORS[i] == selectedColor) colorIndex = i;
         status = "Loaded preset: " + loadedProfile.profileName();
+    }
+
+    private void deletePreset() {
+        if (targetId == null || loadedProfile == null) {
+            status = "Choose a saved preset to delete.";
+            return;
+        }
+        GlaxotionState.IDENTITIES.remove(targetId, loadedProfile.id());
+        loadedProfile = GlaxotionState.IDENTITIES.activeProfile(targetId);
+        if (loadedProfile == null) {
+            profileName.setValue("Default");
+            skinUsername.setValue("");
+            displayedName.setValue("");
+            customTier.setValue("");
+            tier = PvpTier.HT3;
+            selectedColor = 0xFFFFFFFF;
+            colorIndex = 0;
+            status = "Preset deleted. No presets remain for this player.";
+        } else {
+            profileName.setValue(loadedProfile.profileName());
+            skinUsername.setValue(loadedProfile.skinSourceUsername());
+            displayedName.setValue(loadedProfile.displayedName());
+            customTier.setValue(loadedProfile.customTierText());
+            tier = loadedProfile.tier();
+            selectedColor = loadedProfile.textColor();
+            status = "Preset deleted. Loaded " + loadedProfile.profileName();
+        }
     }
 
     private void save() {
