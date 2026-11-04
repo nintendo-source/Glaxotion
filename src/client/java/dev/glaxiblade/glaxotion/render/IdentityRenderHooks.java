@@ -27,7 +27,7 @@ public final class IdentityRenderHooks {
                 if (error != null || result == null || result.isEmpty()) return;
                 MojangSkinService.SkinData skin = result.get();
                 if (!username.equals(REQUESTED.get(playerId))) return;
-                Identifier textureId = Identifier.fromNamespaceAndPath("glaxotion", "skins/" + playerId.toString().replace('-', '_'));
+                Identifier textureId = Identifier.fromNamespaceAndPath("glaxotion", "skins/" + playerId.toString().replace('-', '_') + "_" + skin.uuid().toString().replace('-', '_'));
                 ClientAsset.Texture texture = new ClientAsset.DownloadedTexture(textureId, skin.textureUrl());
                 PlayerModelType model = skin.slimModel() ? PlayerModelType.SLIM : PlayerModelType.WIDE;
                 SKINS.put(playerId, PlayerSkin.insecure(texture, null, null, model));
