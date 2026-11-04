@@ -31,7 +31,7 @@ public final class GlaxotionScreen extends Screen {
     protected void init() {
         int w = Math.min(400, width - 24);
         int x = (width - w) / 2;
-        int y = Math.max(24, (height - 270) / 2);
+        int y = Math.max(24, (height - 300) / 2);
         targetId = GlaxotionState.TARGETS.currentTarget().orElse(null);
         loadedProfile = targetId == null ? null : GlaxotionState.IDENTITIES.activeProfile(targetId);
 
@@ -149,8 +149,26 @@ public final class GlaxotionScreen extends Screen {
         for (int i = 0; i < players.size(); i++) if (players.get(i).getUUID().equals(targetId)) index = i;
         var chosen = players.get((index + 1) % players.size());
         GlaxotionState.TARGETS.setManualTarget(chosen.getUUID());
-        targetId = chosen.getUUID(); loadedProfile = GlaxotionState.IDENTITIES.activeProfile(targetId);
-        status = "Selected " + chosen.getName().getString() + ". Reopen editor to load its fields.";
+        targetId = chosen.getUUID();
+        loadedProfile = GlaxotionState.IDENTITIES.activeProfile(targetId);
+        if (loadedProfile == null) {
+            profileName.setValue("Default");
+            skinUsername.setValue("");
+            displayedName.setValue("");
+            customTier.setValue("");
+            tier = PvpTier.HT3;
+            selectedColor = 0xFFFFFFFF;
+            colorIndex = 0;
+        } else {
+            profileName.setValue(loadedProfile.profileName());
+            skinUsername.setValue(loadedProfile.skinSourceUsername());
+            displayedName.setValue(loadedProfile.displayedName());
+            customTier.setValue(loadedProfile.customTierText());
+            tier = loadedProfile.tier();
+            selectedColor = loadedProfile.textColor();
+            for (int i = 0; i < COLORS.length; i++) if (COLORS[i] == selectedColor) colorIndex = i;
+        }
+        status = "Selected " + chosen.getName().getString();
     }
 
     @Override
