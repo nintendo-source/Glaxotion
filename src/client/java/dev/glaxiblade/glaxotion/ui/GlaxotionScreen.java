@@ -202,7 +202,6 @@ public final class GlaxotionScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
         int w = Math.min(400, width - 24); int x = (width - w) / 2; int y = Math.max(24, (height - 300) / 2);
         graphics.fill(0, 0, width, height, 0xB9000000);
         graphics.fill(x, y, x + w, y + 300, 0xF20A111B);
@@ -215,6 +214,7 @@ public final class GlaxotionScreen extends Screen {
         graphics.text(font, "CUSTOM TIER LABEL", x + 18, y + 175, 0xFF9CB7C8, false);
         graphics.text(font, "PROFILE COLOR                         TARGET RANGE", x + 18, y + 263, 0xFF9CB7C8, false);
         graphics.text(font, status, x + 18, y + 294, 0xFF9CB7C8, false);
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
     @Override
