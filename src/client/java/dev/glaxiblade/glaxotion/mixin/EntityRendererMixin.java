@@ -25,8 +25,7 @@ public abstract class EntityRendererMixin {
         if (tier.isBlank()) {
             cir.setReturnValue(Component.literal(name).withStyle(style -> style.withColor(profile.textColor())));
         } else {
-            Component label = Component.literal("[" + tier + "] ").withStyle(style -> style.withColor(profile.textColor()));
-            cir.setReturnValue(label.append(Component.literal(name).withStyle(style -> style.withColor(profile.textColor()))));
+            cir.setReturnValue(Component.literal("[" + tier + "] " + name).withStyle(style -> style.withColor(profile.textColor())));
         }
     }
 }
