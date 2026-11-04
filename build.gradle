@@ -39,10 +39,12 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
 
+def glaxotionModVersion = project.version.toString()
+
 tasks.withType(ProcessResources).configureEach {
-    inputs.property "version", project.version
+    inputs.property "version", glaxotionModVersion
     filesMatching("fabric.mod.json") {
-        expand "version": project.version
+        expand "version": glaxotionModVersion
     }
 }
 
