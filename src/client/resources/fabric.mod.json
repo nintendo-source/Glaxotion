@@ -4,7 +4,9 @@
   "version": "${version}",
   "name": "Glaxotion",
   "description": "Local player identity and appearance customization.",
-  "authors": ["Glaxiblade"],
+  "authors": [
+    "Glaxiblade"
+  ],
   "contact": {
     "sources": "https://github.com/nintendo-source/Glaxotion"
   },
@@ -20,5 +22,8 @@
     "minecraft": "26.1.1",
     "java": ">=25",
     "fabric-api": "*"
-  }
+  },
+  "mixins": [
+    "glaxotion.mixins.json"
+  ]
 }
