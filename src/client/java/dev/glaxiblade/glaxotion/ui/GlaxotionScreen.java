@@ -19,6 +19,10 @@ public final class GlaxotionScreen extends Screen {
     private UUID targetId;
     private IdentityProfile loadedProfile;
     private PvpTier tier = PvpTier.HT3;
+    private int selectedColor = 0xFFFFFFFF;
+    private int colorIndex = 0;
+    private static final int[] COLORS = {0xFFFFFFFF, 0xFF35D6FF, 0xFFFFD34E, 0xFFFF5D73, 0xFF8BFF9B, 0xFFB78CFF};
+    private static final double[] RANGES = {16, 24, 32, 48, 64, 96};
     private String status = "Auto Target selects the nearest loaded player.";
 
     public GlaxotionScreen() { super(Component.literal("Glaxotion")); }
@@ -42,6 +46,8 @@ public final class GlaxotionScreen extends Screen {
             displayedName.setValue(loadedProfile.displayedName());
             customTier.setValue(loadedProfile.customTierText());
             tier = loadedProfile.tier();
+            selectedColor = loadedProfile.textColor();
+            for (int i = 0; i < COLORS.length; i++) if (COLORS[i] == selectedColor) colorIndex = i;
         }
         addRenderableWidget(profileName); addRenderableWidget(skinUsername); addRenderableWidget(displayedName); addRenderableWidget(customTier);
         addRenderableWidget(Button.builder(Component.literal("Tier: " + tier.label()), b -> {
@@ -60,7 +66,7 @@ public final class GlaxotionScreen extends Screen {
         }).bounds(x + 238, y + 244, w - 256, 20).build());
     }
 
-    private void newPreset() {
+    private String colorName() {\n        return switch (selectedColor) {\n            case 0xFF35D6FF -> "Cyan"; case 0xFFFFD34E -> "Gold"; case 0xFFFF5D73 -> "Coral";\n            case 0xFF8BFF9B -> "Mint"; case 0xFFB78CFF -> "Violet"; default -> "White";\n        };\n    }\n\n    private void newPreset() {
         loadedProfile = null;
         profileName.setValue("Preset " + (targetId == null ? 1 : GlaxotionState.IDENTITIES.profiles(targetId).size() + 1));
         skinUsername.setValue("");
@@ -93,7 +99,7 @@ public final class GlaxotionScreen extends Screen {
         IdentityProfile profile = new IdentityProfile(
                 loadedProfile == null ? UUID.randomUUID() : loadedProfile.id(),
                 profileName.getValue(), skinUsername.getValue(), displayedName.getValue(), tier,
-                customTier.getValue(), 0xFFFFFFFF, !displayedName.getValue().isBlank(), true
+                customTier.getValue(), selectedColor, !displayedName.getValue().isBlank(), true
         );
         try {
             GlaxotionState.IDENTITIES.update(targetId, profile);
@@ -124,9 +130,9 @@ public final class GlaxotionScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
-        int w = Math.min(400, width - 24); int x = (width - w) / 2; int y = Math.max(24, (height - 270) / 2);
+        int w = Math.min(400, width - 24); int x = (width - w) / 2; int y = Math.max(24, (height - 300) / 2);
         graphics.fill(0, 0, width, height, 0xB9000000);
-        graphics.fill(x, y, x + w, y + 272, 0xF20A111B);
+        graphics.fill(x, y, x + w, y + 300, 0xF20A111B);
         graphics.fill(x, y, x + w, y + 3, 0xFF32C5E8);
         graphics.text(font, "GLAXOTION", x + 18, y + 15, 0xFFFFFFFF, true);
         graphics.text(font, "LOCAL IDENTITY STUDIO", x + 18, y + 33, 0xFF74D4E8, false);
@@ -134,7 +140,7 @@ public final class GlaxotionScreen extends Screen {
         graphics.text(font, "SKIN SOURCE USERNAME", x + 18, y + 87, 0xFF9CB7C8, false);
         graphics.text(font, "DISPLAYED IGN", x + 18, y + 131, 0xFF9CB7C8, false);
         graphics.text(font, "CUSTOM TIER LABEL", x + 18, y + 175, 0xFF9CB7C8, false);
-        graphics.text(font, status, x + 18, y + 263, 0xFF9CB7C8, false);
+        graphics.text(font, "PROFILE COLOR                         TARGET RANGE", x + 18, y + 263, 0xFF9CB7C8, false);\n        graphics.text(font, status, x + 18, y + 294, 0xFF9CB7C8, false);
     }
 
     @Override
