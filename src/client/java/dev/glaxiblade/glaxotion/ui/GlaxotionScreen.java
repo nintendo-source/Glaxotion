@@ -64,6 +64,18 @@ public final class GlaxotionScreen extends Screen {
             GlaxotionState.TARGETS.clearManualTarget();
             status = "Manual target cleared; nearest player is selected automatically.";
         }).bounds(x + 238, y + 244, w - 256, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Color: " + colorName()), b -> {
+            colorIndex = (colorIndex + 1) % COLORS.length;
+            selectedColor = COLORS[colorIndex];
+            b.setMessage(Component.literal("Color: " + colorName()));
+        }).bounds(x + 18, y + 272, 150, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Range: " + (int) GlaxotionState.TARGETS.range()), b -> {
+            int current = 0;
+            for (int i = 0; i < RANGES.length; i++) if (RANGES[i] == GlaxotionState.TARGETS.range()) current = i;
+            double next = RANGES[(current + 1) % RANGES.length];
+            GlaxotionState.TARGETS.setRange(next);
+            b.setMessage(Component.literal("Range: " + (int) next));
+        }).bounds(x + 178, y + 272, 150, 20).build());
     }
 
     private String colorName() {\n        return switch (selectedColor) {\n            case 0xFF35D6FF -> "Cyan"; case 0xFFFFD34E -> "Gold"; case 0xFFFF5D73 -> "Coral";\n            case 0xFF8BFF9B -> "Mint"; case 0xFFB78CFF -> "Violet"; default -> "White";\n        };\n    }\n\n    private void newPreset() {
@@ -73,6 +85,7 @@ public final class GlaxotionScreen extends Screen {
         displayedName.setValue("");
         customTier.setValue("");
         tier = PvpTier.HT3;
+        selectedColor = 0xFFFFFFFF; colorIndex = 0;
         status = "New preset ready. Save it to add another profile for this player.";
     }
 
@@ -91,6 +104,8 @@ public final class GlaxotionScreen extends Screen {
         displayedName.setValue(loadedProfile.displayedName());
         customTier.setValue(loadedProfile.customTierText());
         tier = loadedProfile.tier();
+        selectedColor = loadedProfile.textColor();
+        for (int i = 0; i < COLORS.length; i++) if (COLORS[i] == selectedColor) colorIndex = i;
         status = "Loaded preset: " + loadedProfile.profileName();
     }
 
@@ -140,7 +155,8 @@ public final class GlaxotionScreen extends Screen {
         graphics.text(font, "SKIN SOURCE USERNAME", x + 18, y + 87, 0xFF9CB7C8, false);
         graphics.text(font, "DISPLAYED IGN", x + 18, y + 131, 0xFF9CB7C8, false);
         graphics.text(font, "CUSTOM TIER LABEL", x + 18, y + 175, 0xFF9CB7C8, false);
-        graphics.text(font, "PROFILE COLOR                         TARGET RANGE", x + 18, y + 263, 0xFF9CB7C8, false);\n        graphics.text(font, status, x + 18, y + 294, 0xFF9CB7C8, false);
+        graphics.text(font, "PROFILE COLOR                         TARGET RANGE", x + 18, y + 263, 0xFF9CB7C8, false);
+        graphics.text(font, status, x + 18, y + 294, 0xFF9CB7C8, false);
     }
 
     @Override
