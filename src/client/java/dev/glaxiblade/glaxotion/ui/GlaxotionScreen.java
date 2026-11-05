@@ -4,11 +4,14 @@ import dev.glaxiblade.glaxotion.GlaxotionState;
 import dev.glaxiblade.glaxotion.identity.IdentityProfile;
 import dev.glaxiblade.glaxotion.identity.PvpTier;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import java.util.UUID;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 /** Local profile editor for the currently resolved or manually selected player. */
 public final class GlaxotionScreen extends Screen {
@@ -24,14 +27,23 @@ public final class GlaxotionScreen extends Screen {
     private static final int[] COLORS = {0xFFFFFFFF, 0xFF35D6FF, 0xFFFFD34E, 0xFFFF5D73, 0xFF8BFF9B, 0xFFB78CFF};
     private static final double[] RANGES = {16, 24, 32, 48, 64, 96};
     private String status = "Auto Target selects the nearest loaded player.";
+    private final Map<AbstractWidget, Integer> originalWidgetY = new IdentityHashMap<>();
+    private int scrollOffset;
+    private int panelX, panelY, panelWidth, panelHeight, viewportTop, viewportBottom, maxScroll;
 
     public GlaxotionScreen() { super(Component.literal("Glaxotion")); }
 
     @Override
     protected void init() {
+        originalWidgetY.clear();
+        scrollOffset = 0;
         int w = Math.min(400, width - 24);
         int x = (width - w) / 2;
-        int y = Math.max(24, (height - 300) / 2);
+        int panelH = Math.max(180, Math.min(420, height - 20));
+        int y = (height - panelH) / 2;
+        panelX = x; panelY = y; panelWidth = w; panelHeight = panelH;
+        viewportTop = y + 48;
+        viewportBottom = y + panelH - 28;
         targetId = GlaxotionState.TARGETS.currentTarget().orElse(null);
         loadedProfile = targetId == null ? null : GlaxotionState.IDENTITIES.activeProfile(targetId);
 
@@ -78,6 +90,42 @@ public final class GlaxotionScreen extends Screen {
         }).bounds(x + 138, y + 272, 110, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Delete Preset"), b -> deletePreset())
                 .bounds(x + 258, y + 272, 124, 20).build());
+
+        for (var child : children()) {
+            if (child instanceof AbstractWidget widget) originalWidgetY.put(widget, widget.getY());
+        }
+        maxScroll = Math.max(0, 300 - (viewportBottom - viewportTop));
+        updateScrollPositions();
+    }
+
+    private void updateScrollPositions() {
+        for (var entry : originalWidgetY.entrySet()) {
+            entry.getKey().setY(entry.getValue() - scrollOffset);
+        }
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (mouseX < panelX || mouseX > panelX + panelWidth || mouseY < viewportTop || mouseY > viewportBottom || maxScroll <= 0) {
+            return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+        }
+        int previous = scrollOffset;
+        scrollOffset = Math.max(0, Math.min(maxScroll, scrollOffset - (int) Math.round(verticalAmount * 24.0)));
+        if (previous != scrollOffset) updateScrollPositions();
+        return true;
+    }
+
+    @Override
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        if (event.key() == 267 || event.key() == 266 || event.key() == 281 || event.key() == 280) {
+            int step = event.key() == 267 || event.key() == 266 ? 24 : Math.max(24, viewportBottom - viewportTop - 24);
+            int direction = event.key() == 267 || event.key() == 281 ? 1 : -1;
+            int previous = scrollOffset;
+            scrollOffset = Math.max(0, Math.min(maxScroll, scrollOffset + direction * step));
+            if (previous != scrollOffset) updateScrollPositions();
+            return true;
+        }
+        return super.keyPressed(event);
     }
 
     private String colorName() {
@@ -202,19 +250,33 @@ public final class GlaxotionScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        int w = Math.min(400, width - 24); int x = (width - w) / 2; int y = Math.max(24, (height - 300) / 2);
+        int x = panelX, y = panelY, w = panelWidth, h = panelHeight;
         graphics.fill(0, 0, width, height, 0xB9000000);
-        graphics.fill(x, y, x + w, y + 300, 0xF20A111B);
+        graphics.fill(x, y, x + w, y + h, 0xF20A111B);
         graphics.fill(x, y, x + w, y + 3, 0xFF32C5E8);
-        graphics.text(font, "GLAXOTION", x + 18, y + 15, 0xFFFFFFFF, true);
-        graphics.text(font, "LOCAL IDENTITY STUDIO", x + 18, y + 33, 0xFF74D4E8, false);
-        graphics.text(font, "PROFILE NAME", x + 18, y + 43, 0xFF9CB7C8, false);
-        graphics.text(font, "SKIN SOURCE USERNAME", x + 18, y + 87, 0xFF9CB7C8, false);
-        graphics.text(font, "DISPLAYED IGN", x + 18, y + 131, 0xFF9CB7C8, false);
-        graphics.text(font, "CUSTOM TIER LABEL", x + 18, y + 175, 0xFF9CB7C8, false);
-        graphics.text(font, "PROFILE COLOR                         TARGET RANGE", x + 18, y + 263, 0xFF9CB7C8, false);
-        graphics.text(font, status, x + 18, y + 294, 0xFF9CB7C8, false);
+        graphics.text(font, "GLAXOTION", x + 18, y + 13, 0xFFFFFFFF, true);
+        graphics.text(font, "LOCAL IDENTITY STUDIO", x + 18, y + 31, 0xFF74D4E8, false);
+        graphics.fill(x + 10, viewportTop - 3, x + w - 10, viewportBottom + 3, 0x66172230);
+        graphics.enableScissor(x + 10, viewportTop, x + w - 10, viewportBottom);
+        graphics.text(font, "PROFILE NAME", x + 18, y + 43 - scrollOffset, 0xFF9CB7C8, false);
+        graphics.text(font, "SKIN SOURCE USERNAME", x + 18, y + 87 - scrollOffset, 0xFF9CB7C8, false);
+        graphics.text(font, "DISPLAYED IGN", x + 18, y + 131 - scrollOffset, 0xFF9CB7C8, false);
+        graphics.text(font, "CUSTOM TIER LABEL", x + 18, y + 175 - scrollOffset, 0xFF9CB7C8, false);
+        graphics.text(font, "PROFILE COLOR                         TARGET RANGE", x + 18, y + 263 - scrollOffset, 0xFF9CB7C8, false);
         super.extractRenderState(graphics, mouseX, mouseY, delta);
+        graphics.disableScissor();
+        graphics.fill(x + 12, y + h - 23, x + w - 12, y + h - 22, 0xFF30404D);
+        if (maxScroll > 0) {
+            int trackTop = viewportTop;
+            int trackHeight = viewportBottom - viewportTop;
+            int thumbHeight = Math.max(18, trackHeight * trackHeight / (trackHeight + maxScroll));
+            int thumbY = trackTop + (trackHeight - thumbHeight) * scrollOffset / maxScroll;
+            graphics.fill(x + w - 7, trackTop, x + w - 5, viewportBottom, 0xFF263746);
+            graphics.fill(x + w - 7, thumbY, x + w - 5, thumbY + thumbHeight, 0xFF35C5E8);
+        }
+        String hint = maxScroll > 0 ? "Scroll wheel / Page Up / Page Down to view all controls" : "ESC to close";
+        graphics.text(font, hint, x + 18, y + h - 16, 0xFF9CB7C8, false);
+        graphics.text(font, status, x + 18, y + h - 34, 0xFF74D4E8, false);
     }
 
     @Override
