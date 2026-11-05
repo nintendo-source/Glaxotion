@@ -28,4 +28,22 @@ public abstract class EntityRendererMixin {
             cir.setReturnValue(Component.literal("[" + tier + "] " + name).withStyle(style -> style.withColor(profile.textColor())));
         }
     }
+    @Inject(
+            method = "extractRenderState(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/client/renderer/entity/state/EntityRenderState;F)V",
+            at = @At("TAIL")
+    )
+    private void glaxotion$writeNameTagToRenderState(Entity entity,
+            net.minecraft.client.renderer.entity.state.EntityRenderState state,
+            float partialTick, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        if (!(entity instanceof Player player)) return;
+        IdentityProfile profile = GlaxotionState.IDENTITIES.activeProfile(player.getUUID());
+        if (profile == null) return;
+        String name = profile.showDisplayedName() && !profile.displayedName().isBlank()
+                ? profile.displayedName() : player.getName().getString();
+        String tier = profile.showTier() ? profile.visibleTierText() : "";
+        String label = tier.isBlank() ? name : "[" + tier + "] " + name;
+        state.nameTag = Component.literal(label)
+                .withStyle(style -> style.withColor(profile.textColor()));
+    }
+
 }
