@@ -65,7 +65,7 @@ public final class GlaxotionScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Save Profile"), b -> save())
                 .bounds(x + 138, y + 242, 112, 22).build());
         addRenderableWidget(Button.builder(Component.literal("Target & Presets  →"), b -> {
-            saveWidgetValues(); page = 1; rebuild();
+            save(); page = 1; rebuild();
         }).bounds(x + 258, y + 242, w - 276, 22).build());
     }
 
@@ -102,12 +102,9 @@ public final class GlaxotionScreen extends Screen {
     }
 
     private void rebuild() {
-        if (minecraft != null) minecraft.setScreen(this);
-    }
-
-    private void saveWidgetValues() {
-        if (profileName == null) return;
-        // Values are already held by the screen fields; this method documents the page transition.
+        clearWidgets();
+        if (page == 0) buildIdentityPage();
+        else buildTargetPage();
     }
 
     private void loadFields(IdentityProfile profile) {
