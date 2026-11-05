@@ -29,8 +29,17 @@ public final class IdentityStore {
     }
     public synchronized void update(UUID player, IdentityProfile profile) {
         List<IdentityProfile> list = profiles.computeIfAbsent(player, ignored -> new ArrayList<>());
-        for (int i = 0; i < list.size(); i++) if (list.get(i).id().equals(profile.id())) { list.set(i, profile); save(); return; }
-        add(player, profile);
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).id().equals(profile.id())) {
+                list.set(i, profile);
+                active.put(player, profile.id());
+                save();
+                return;
+            }
+        }
+        list.add(profile);
+        active.put(player, profile.id());
+        save();
     }
     public synchronized void select(UUID player, UUID profile) {
         if (profiles.getOrDefault(player, List.of()).stream().noneMatch(p -> p.id().equals(profile))) throw new IllegalArgumentException("Unknown profile");
