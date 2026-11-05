@@ -100,7 +100,11 @@ public final class GlaxotionScreen extends Screen {
 
     private void updateScrollPositions() {
         for (var entry : originalWidgetY.entrySet()) {
-            entry.getKey().setY(entry.getValue() - scrollOffset);
+            AbstractWidget widget = entry.getKey();
+            widget.setY(entry.getValue() - scrollOffset);
+            boolean fullyInsideViewport = widget.getY() >= viewportTop
+                    && widget.getY() + widget.getHeight() <= viewportBottom;
+            widget.active = fullyInsideViewport;
         }
     }
 
