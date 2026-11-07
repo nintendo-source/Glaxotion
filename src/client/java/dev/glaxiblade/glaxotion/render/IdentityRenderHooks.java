@@ -1,6 +1,7 @@
 package dev.glaxiblade.glaxotion.render;
 
 import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
 import dev.glaxiblade.glaxotion.GlaxotionClient;
 import dev.glaxiblade.glaxotion.GlaxotionState;
 import dev.glaxiblade.glaxotion.identity.IdentityProfile;
@@ -62,6 +63,13 @@ public final class IdentityRenderHooks {
                 MojangSkinService.SkinData skin = result.get();
                 STATUS.put(playerId, "Downloading " + skin.canonicalName() + " skin…");
                 GameProfile sourceProfile = new GameProfile(skin.uuid(), skin.canonicalName());
+                // Supply the exact Mojang textures property (including its
+                // signature when present) so SkinManager can resolve Dream's
+                // actual texture rather than falling back to the default skin.
+                sourceProfile.getProperties().put("textures",
+                        skin.texturePropertySignature() == null
+                                ? new Property("textures", skin.texturePropertyValue())
+                                : new Property("textures", skin.texturePropertyValue(), skin.texturePropertySignature()));
                 Minecraft.getInstance().getSkinManager().get(sourceProfile).whenComplete((loaded, skinError) -> {
                     if (!requestKey.equals(REQUESTED.get(playerId))) return;
                     if (skinError != null) {
