@@ -1,12 +1,11 @@
 package dev.glaxiblade.glaxotion.render;
 
+import com.mojang.authlib.GameProfile;
 import dev.glaxiblade.glaxotion.GlaxotionClient;
 import dev.glaxiblade.glaxotion.GlaxotionState;
 import dev.glaxiblade.glaxotion.identity.IdentityProfile;
 import dev.glaxiblade.glaxotion.skin.MojangSkinService;
-import net.minecraft.core.ClientAsset;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.entity.player.PlayerModelType;
+import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.PlayerSkin;
 
 import java.util.Map;
@@ -14,10 +13,11 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Resolves local identity profiles into render-state skins.
+ * Resolves local identity profiles into fully registered vanilla skin assets.
  *
- * The render hook never performs network work on the render thread. A request
- * is started once per active profile and its result is cached until refresh().
+ * SkinManager is responsible for downloading, caching and registering the
+ * texture with Minecraft's TextureManager. A DownloadedTexture descriptor by
+ * itself is not a registered/renderable texture.
  */
 public final class IdentityRenderHooks {
     private static final Map<UUID, PlayerSkin> SKINS = new ConcurrentHashMap<>();
@@ -60,15 +60,24 @@ public final class IdentityRenderHooks {
                 }
 
                 MojangSkinService.SkinData skin = result.get();
-                Identifier textureId = Identifier.fromNamespaceAndPath(
-                        "glaxotion",
-                        "skins/" + playerId.toString().replace("-", "") + "_" + skin.uuid().toString().replace("-", "")
-                );
-                ClientAsset.Texture texture = new ClientAsset.DownloadedTexture(textureId, skin.textureUrl());
-                PlayerModelType model = skin.slimModel() ? PlayerModelType.SLIM : PlayerModelType.WIDE;
-                SKINS.put(playerId, PlayerSkin.insecure(texture, null, null, model));
-                STATUS.put(playerId, "Skin ready: " + skin.canonicalName());
-                GlaxotionClient.LOGGER.info("Glaxotion resolved skin {} for local target {}", skin.canonicalName(), playerId);
+                STATUS.put(playerId, "Downloading " + skin.canonicalName() + " skin…");
+                GameProfile sourceProfile = new GameProfile(skin.uuid(), skin.canonicalName());
+                Minecraft.getInstance().getSkinManager().get(sourceProfile).whenComplete((loaded, skinError) -> {
+                    if (!requestKey.equals(REQUESTED.get(playerId))) return;
+                    if (skinError != null) {
+                        Throwable cause = skinError.getCause() == null ? skinError : skinError.getCause();
+                        STATUS.put(playerId, "Skin download failed: " + cause.getClass().getSimpleName());
+                        GlaxotionClient.LOGGER.warn("Glaxotion could not download/register skin for {}", username, cause);
+                        return;
+                    }
+                    if (loaded == null || loaded.isEmpty()) {
+                        STATUS.put(playerId, "Mojang returned no skin for " + username);
+                        return;
+                    }
+                    SKINS.put(playerId, loaded.get());
+                    STATUS.put(playerId, "Skin loaded: " + skin.canonicalName());
+                    GlaxotionClient.LOGGER.info("Glaxotion loaded vanilla skin asset {} for local target {}", skin.canonicalName(), playerId);
+                });
             });
         }
 
