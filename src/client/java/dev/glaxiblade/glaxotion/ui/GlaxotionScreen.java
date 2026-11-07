@@ -175,10 +175,15 @@ public final class GlaxotionScreen extends Screen {
             status = "No target. Open Targets and select a nearby player first.";
             return;
         }
+        // If the user only enters a skin username, use it as the displayed
+        // local name too. An explicitly entered Displayed IGN still takes priority.
+        String shownName = displayedName.getValue().isBlank()
+                ? skinUsername.getValue().trim()
+                : displayedName.getValue().trim();
         IdentityProfile profile = new IdentityProfile(
                 loadedProfile == null ? UUID.randomUUID() : loadedProfile.id(),
-                profileName.getValue(), skinUsername.getValue(), displayedName.getValue(), tier,
-                customTier.getValue(), selectedColor, !displayedName.getValue().isBlank(), true
+                profileName.getValue(), skinUsername.getValue(), shownName, tier,
+                customTier.getValue(), selectedColor, !shownName.isBlank(), true
         );
         try {
             GlaxotionState.IDENTITIES.update(targetId, profile);
