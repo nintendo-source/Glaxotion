@@ -1,5 +1,5 @@
 {
-  "required": false,
+  "required": true,
   "minVersion": "0.8",
   "package": "dev.glaxiblade.glaxotion.mixin",
   "compatibilityLevel": "JAVA_25",
@@ -8,6 +8,6 @@
     "EntityRendererMixin"
   ],
   "injectors": {
-    "defaultRequire": 0
+    "defaultRequire": 1
   }
 }
