@@ -50,7 +50,12 @@ public final class MojangSkinService {
                 for (var element : json.getAsJsonArray("properties")) {
                     JsonObject property = element.getAsJsonObject();
                     if (!"textures".equals(property.get("name").getAsString())) continue;
-                    String decoded = new String(Base64.getDecoder().decode(property.get("value").getAsString()), StandardCharsets.UTF_8);
+                    // Preserve the original signed textures property. SkinManager needs
+                    // this property on GameProfile; UUID + name alone resolves to Steve/Alex.
+                    String texturePropertyValue = property.get("value").getAsString();
+                    String texturePropertySignature = property.has("signature")
+                            ? property.get("signature").getAsString() : null;
+                    String decoded = new String(Base64.getDecoder().decode(texturePropertyValue), StandardCharsets.UTF_8);
                     JsonObject textures = JsonParser.parseString(decoded).getAsJsonObject().getAsJsonObject("textures");
                     if (textures == null || !textures.has("SKIN")) return Optional.<SkinData>empty();
                     JsonObject skin = textures.getAsJsonObject("SKIN");
@@ -71,11 +76,11 @@ public final class MojangSkinService {
                     }
                     url = "https://" + TEXTURE_HOST + textureUri.getPath();
                     boolean slim = skin.has("metadata") && skin.getAsJsonObject("metadata").has("model") && "slim".equals(skin.getAsJsonObject("metadata").get("model").getAsString());
-                    return Optional.of(new SkinData(uuid, profile.get("name").getAsString(), url, slim));
+                    return Optional.of(new SkinData(uuid, profile.get("name").getAsString(), url, slim, texturePropertyValue, texturePropertySignature));
                 }
                 return Optional.empty();
             });
         });
     }
-    public record SkinData(UUID uuid, String canonicalName, String textureUrl, boolean slimModel) {}
+    public record SkinData(UUID uuid, String canonicalName, String textureUrl, boolean slimModel, String texturePropertyValue, String texturePropertySignature) {}
 }
