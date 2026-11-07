@@ -80,6 +80,7 @@ public final class GlaxotionScreen extends Screen {
                 .bounds(x + 18, y + 108, 180, 22).build());
         addRenderableWidget(Button.builder(Component.literal("Auto Target"), b -> {
             GlaxotionState.TARGETS.clearManualTarget();
+            GlaxotionState.TARGETS.tick(minecraft);
             targetId = GlaxotionState.TARGETS.currentTarget().orElse(null);
             loadedProfile = targetId == null ? null : GlaxotionState.IDENTITIES.activeProfile(targetId);
             status = "Manual selection cleared; nearest player will be used.";
@@ -93,6 +94,13 @@ public final class GlaxotionScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("Color: " + colorName()), b -> {
             colorIndex = (colorIndex + 1) % COLORS.length;
             selectedColor = COLORS[colorIndex];
+            if (targetId != null && loadedProfile != null) {
+                loadedProfile = new IdentityProfile(loadedProfile.id(), loadedProfile.profileName(),
+                        loadedProfile.skinSourceUsername(), loadedProfile.displayedName(), loadedProfile.tier(),
+                        loadedProfile.customTierText(), selectedColor, loadedProfile.showDisplayedName(), loadedProfile.showTier());
+                GlaxotionState.IDENTITIES.update(targetId, loadedProfile);
+                IdentityRenderHooks.refresh(targetId);
+            }
             b.setMessage(Component.literal("Color: " + colorName()));
         }).bounds(x + 18, y + 190, 180, 22).build());
         addRenderableWidget(Button.builder(Component.literal("Range: " + (int) GlaxotionState.TARGETS.range() + " blocks"), b -> {
