@@ -18,7 +18,12 @@ public final class GlaxotionClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        GlaxotionState.IDENTITIES.load();
+        try {
+            GlaxotionState.IDENTITIES.load();
+        } catch (RuntimeException error) {
+            // A damaged local config must not prevent Minecraft from starting.
+            LOGGER.error("Could not load Glaxotion profiles. The mod will start with an empty in-memory store.", error);
+        }
         KeyMapping.Category category = KeyMapping.Category.register(
                 Identifier.fromNamespaceAndPath(MOD_ID, "general")
         );
