@@ -18,7 +18,8 @@ import java.util.regex.Pattern;
 /** Resolves public skin texture metadata from Mojang; no credentials are used. */
 public final class MojangSkinService {
     private static final Pattern USERNAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
-    private static final String TEXTURE_PREFIX = "https://textures.minecraft.net/texture/";
+    private static final String TEXTURE_HOST = "textures.minecraft.net";
+    private static final String TEXTURE_PREFIX = "/texture/";
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
     private final ConcurrentHashMap<String, CompletableFuture<Optional<SkinData>>> cache = new ConcurrentHashMap<>();
 
@@ -54,7 +55,21 @@ public final class MojangSkinService {
                     if (textures == null || !textures.has("SKIN")) return Optional.<SkinData>empty();
                     JsonObject skin = textures.getAsJsonObject("SKIN");
                     String url = skin.get("url").getAsString();
-                    if (!url.startsWith(TEXTURE_PREFIX)) throw new IllegalStateException("Unexpected Mojang texture URL");
+                    // Mojang's signed profile payloads have historically returned
+                    // both http:// and https:// texture URLs. Only accept the
+                    // official texture host and texture path, then normalize TLS.
+                    URI textureUri = URI.create(url);
+                    if (!TEXTURE_HOST.equalsIgnoreCase(textureUri.getHost())
+                            || textureUri.getUserInfo() != null
+                            || textureUri.getQuery() != null
+                            || textureUri.getFragment() != null
+                            || textureUri.getPath() == null
+                            || !textureUri.getPath().startsWith(TEXTURE_PREFIX)
+                            || !("http".equalsIgnoreCase(textureUri.getScheme())
+                            || "https".equalsIgnoreCase(textureUri.getScheme()))) {
+                        throw new IllegalStateException("Unexpected Mojang texture URL");
+                    }
+                    url = "https://" + TEXTURE_HOST + textureUri.getPath();
                     boolean slim = skin.has("metadata") && skin.getAsJsonObject("metadata").has("model") && "slim".equals(skin.getAsJsonObject("metadata").get("model").getAsString());
                     return Optional.of(new SkinData(uuid, profile.get("name").getAsString(), url, slim));
                 }
