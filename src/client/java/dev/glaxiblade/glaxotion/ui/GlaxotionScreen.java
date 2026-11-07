@@ -3,6 +3,7 @@ package dev.glaxiblade.glaxotion.ui;
 import dev.glaxiblade.glaxotion.GlaxotionState;
 import dev.glaxiblade.glaxotion.identity.IdentityProfile;
 import dev.glaxiblade.glaxotion.identity.PvpTier;
+import dev.glaxiblade.glaxotion.render.IdentityRenderHooks;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -29,8 +30,8 @@ public final class GlaxotionScreen extends Screen {
     @Override
     protected void init() {
         clearWidgets();
-        int w = Math.min(420, width - 24);
-        int h = Math.min(350, height - 20);
+        int w = Math.max(1, Math.min(420, width - 24));
+        int h = Math.max(1, Math.min(350, height - 20));
         panelWidth = w; panelHeight = h;
         panelX = (width - w) / 2; panelY = (height - h) / 2;
         targetId = GlaxotionState.TARGETS.currentTarget().orElse(null);
@@ -41,6 +42,7 @@ public final class GlaxotionScreen extends Screen {
 
     private void buildIdentityPage() {
         int x = panelX, y = panelY, w = panelWidth;
+        if (w < 360 || panelHeight < 330) { status = "Window too small. Enlarge Minecraft to edit profiles."; return; }
         profileName = new EditBox(font, x + 18, y + 72, w - 36, 20, Component.literal("Profile name"));
         skinUsername = new EditBox(font, x + 18, y + 116, w - 36, 20, Component.literal("Skin source Java username"));
         displayedName = new EditBox(font, x + 18, y + 160, w - 36, 20, Component.literal("Displayed IGN"));
@@ -71,6 +73,7 @@ public final class GlaxotionScreen extends Screen {
 
     private void buildTargetPage() {
         int x = panelX, y = panelY, w = panelWidth;
+        if (w < 360 || panelHeight < 300) { status = "Window too small. Enlarge Minecraft to manage targets."; return; }
         addRenderableWidget(Button.builder(Component.literal("←  Identity Editor"), b -> { page = 0; rebuild(); })
                 .bounds(x + 18, y + 72, w - 36, 22).build());
         addRenderableWidget(Button.builder(Component.literal("Next Player"), b -> { nextPlayer(); rebuild(); })
@@ -141,7 +144,8 @@ public final class GlaxotionScreen extends Screen {
         try {
             GlaxotionState.IDENTITIES.update(targetId, profile);
             loadedProfile = profile;
-            status = "Saved for " + targetId.toString().substring(0, 8) + ".";
+            IdentityRenderHooks.refresh(targetId);
+            status = "Saved for " + targetId.toString().substring(0, 8) + ". Skin: " + (profile.skinSourceUsername().isBlank() ? "unchanged" : "lookup started");
         } catch (RuntimeException e) {
             status = "Save failed: " + e.getMessage();
         }
@@ -212,6 +216,7 @@ public final class GlaxotionScreen extends Screen {
             graphics.text(font, "SKIN SOURCE JAVA USERNAME", x + 18, y + 104, 0xFF9CB7C8, false);
             graphics.text(font, "DISPLAYED IGN", x + 18, y + 148, 0xFF9CB7C8, false);
             graphics.text(font, "CUSTOM TIER LABEL", x + 18, y + 192, 0xFF9CB7C8, false);
+            if (targetId != null) graphics.text(font, IdentityRenderHooks.skinStatus(targetId), x + 18, y + 272, 0xFF74D4E8, false);
         } else {
             String target = targetId == null ? "No target selected" : "Target: " + targetId.toString().substring(0, 8);
             graphics.text(font, target, x + 18, y + 56, 0xFFFFFFFF, false);
