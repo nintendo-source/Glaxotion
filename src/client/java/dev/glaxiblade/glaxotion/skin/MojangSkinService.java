@@ -25,7 +25,14 @@ public final class MojangSkinService {
     public CompletableFuture<Optional<SkinData>> resolve(String input) {
         if (input == null || !USERNAME.matcher(input.trim()).matches()) return CompletableFuture.completedFuture(Optional.empty());
         String name = input.trim();
-        return cache.computeIfAbsent(name.toLowerCase(), key -> lookup(name));
+        return cache.computeIfAbsent(name.toLowerCase(), key -> {
+            CompletableFuture<Optional<SkinData>> request = lookup(name);
+            request.whenComplete((value, error) -> {
+                // Do not permanently cache transient network/server failures.
+                if (error != null) cache.remove(key, request);
+            });
+            return request;
+        });
     }
     private CompletableFuture<Optional<SkinData>> lookup(String name) {
         HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.mojang.com/users/profiles/minecraft/" + name)).timeout(Duration.ofSeconds(10)).GET().build();
