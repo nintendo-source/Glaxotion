@@ -9,9 +9,10 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+
 import java.util.UUID;
 
-/** Two-page, fixed-layout editor. No clipped controls or hidden scroll area. */
+/** Responsive two-page identity editor. All controls are placed inside the usable GUI area. */
 public final class GlaxotionScreen extends Screen {
     private EditBox profileName, skinUsername, displayedName, customTier;
     private UUID targetId;
@@ -20,7 +21,7 @@ public final class GlaxotionScreen extends Screen {
     private int selectedColor = 0xFFFFFFFF;
     private int colorIndex;
     private int page;
-    private String status = "Auto Target uses the nearest loaded player.";
+    private String status = "Select a nearby player to begin.";
     private static final int[] COLORS = {0xFFFFFFFF, 0xFF35D6FF, 0xFFFFD34E, 0xFFFF5D73, 0xFF8BFF9B, 0xFFB78CFF};
     private static final double[] RANGES = {16, 24, 32, 48, 64, 96};
     private int panelX, panelY, panelWidth, panelHeight;
@@ -30,25 +31,42 @@ public final class GlaxotionScreen extends Screen {
     @Override
     protected void init() {
         clearWidgets();
-        int w = Math.max(1, Math.min(420, width - 24));
-        int h = Math.max(1, Math.min(350, height - 20));
-        panelWidth = w; panelHeight = h;
-        panelX = (width - w) / 2; panelY = (height - h) / 2;
+        // Minecraft GUI dimensions are scaled logical pixels, not desktop pixels.
+        // Keep the panel compact enough for high GUI-scale settings.
+        panelWidth = Math.max(240, Math.min(420, width - 16));
+        panelHeight = Math.max(220, Math.min(350, height - 16));
+        panelX = (width - panelWidth) / 2;
+        panelY = (height - panelHeight) / 2;
         targetId = GlaxotionState.TARGETS.currentTarget().orElse(null);
         loadedProfile = targetId == null ? null : GlaxotionState.IDENTITIES.activeProfile(targetId);
+        if (panelWidth < 240 || panelHeight < 220) {
+            status = "Increase Minecraft's GUI space to use Glaxotion.";
+            return;
+        }
+        rebuild();
+    }
+
+    private void rebuild() {
+        clearWidgets();
         if (page == 0) buildIdentityPage();
         else buildTargetPage();
     }
 
     private void buildIdentityPage() {
-        int x = panelX, y = panelY, w = panelWidth;
-        if (w < 360 || panelHeight < 330) { status = "Window too small. Enlarge Minecraft to edit profiles."; return; }
-        profileName = new EditBox(font, x + 18, y + 72, w - 36, 20, Component.literal("Profile name"));
-        skinUsername = new EditBox(font, x + 18, y + 116, w - 36, 20, Component.literal("Skin source Java username"));
-        displayedName = new EditBox(font, x + 18, y + 160, w - 36, 20, Component.literal("Displayed IGN"));
-        customTier = new EditBox(font, x + 18, y + 204, w - 36, 20, Component.literal("Custom tier label"));
-        profileName.setMaxLength(32); skinUsername.setMaxLength(16);
-        displayedName.setMaxLength(32); customTier.setMaxLength(24);
+        int x = panelX, y = panelY, w = panelWidth, h = panelHeight;
+        int fieldStep = Math.max(25, Math.min(39, (h - 112) / 4));
+        int fieldStart = 43;
+        int inputWidth = w - 32;
+
+        profileName = new EditBox(font, x + 16, y + fieldStart + 9, inputWidth, 18, Component.literal("Profile name"));
+        skinUsername = new EditBox(font, x + 16, y + fieldStart + fieldStep + 9, inputWidth, 18, Component.literal("Skin username"));
+        displayedName = new EditBox(font, x + 16, y + fieldStart + fieldStep * 2 + 9, inputWidth, 18, Component.literal("Displayed IGN"));
+        customTier = new EditBox(font, x + 16, y + fieldStart + fieldStep * 3 + 9, inputWidth, 18, Component.literal("Custom tier"));
+        profileName.setMaxLength(32);
+        skinUsername.setMaxLength(16);
+        displayedName.setMaxLength(32);
+        customTier.setMaxLength(24);
+
         if (loadedProfile != null) loadFields(loadedProfile);
         else {
             profileName.setValue("Default");
@@ -60,37 +78,54 @@ public final class GlaxotionScreen extends Screen {
         addRenderableWidget(skinUsername);
         addRenderableWidget(displayedName);
         addRenderableWidget(customTier);
-        addRenderableWidget(Button.builder(Component.literal("Tier: " + tier.label()), b -> {
+
+        int buttonY = y + h - 49;
+        int gap = 5;
+        int buttonWidth = Math.max(54, (w - 32 - gap * 2) / 3);
+        addRenderableWidget(Button.builder(Component.literal("Tier"), b -> {
             tier = PvpTier.values()[(tier.ordinal() + 1) % PvpTier.values().length];
-            b.setMessage(Component.literal("Tier: " + tier.label()));
-        }).bounds(x + 18, y + 242, 112, 22).build());
-        addRenderableWidget(Button.builder(Component.literal("Save Profile"), b -> save())
-                .bounds(x + 138, y + 242, 112, 22).build());
-        addRenderableWidget(Button.builder(Component.literal("Target & Presets  →"), b -> {
-            save(); page = 1; rebuild();
-        }).bounds(x + 258, y + 242, w - 276, 22).build());
+            status = "Tier set to " + tier.label() + ". Save to apply.";
+        }).bounds(x + 16, buttonY, buttonWidth, 22).build());
+        addRenderableWidget(Button.builder(Component.literal("Save"), b -> save())
+                .bounds(x + 16 + buttonWidth + gap, buttonY, buttonWidth, 22).build());
+        addRenderableWidget(Button.builder(Component.literal("Targets →"), b -> {
+            page = 1;
+            rebuild();
+        }).bounds(x + 16 + (buttonWidth + gap) * 2, buttonY, buttonWidth, 22).build());
     }
 
     private void buildTargetPage() {
         int x = panelX, y = panelY, w = panelWidth;
-        if (w < 360 || panelHeight < 300) { status = "Window too small. Enlarge Minecraft to manage targets."; return; }
-        addRenderableWidget(Button.builder(Component.literal("←  Identity Editor"), b -> { page = 0; rebuild(); })
-                .bounds(x + 18, y + 72, w - 36, 22).build());
-        addRenderableWidget(Button.builder(Component.literal("Next Player"), b -> { nextPlayer(); rebuild(); })
-                .bounds(x + 18, y + 108, 180, 22).build());
+        int inner = w - 32;
+        int gap = 6;
+        int half = (inner - gap) / 2;
+        int third = (inner - gap * 2) / 3;
+
+        addRenderableWidget(Button.builder(Component.literal("← Back to editor"), b -> {
+            page = 0;
+            rebuild();
+        }).bounds(x + 16, y + 49, inner, 20).build());
+
+        addRenderableWidget(Button.builder(Component.literal("Next Player"), b -> {
+            nextPlayer();
+            rebuild();
+        }).bounds(x + 16, y + 91, half, 22).build());
         addRenderableWidget(Button.builder(Component.literal("Auto Target"), b -> {
             GlaxotionState.TARGETS.clearManualTarget();
             GlaxotionState.TARGETS.tick(minecraft);
             targetId = GlaxotionState.TARGETS.currentTarget().orElse(null);
             loadedProfile = targetId == null ? null : GlaxotionState.IDENTITIES.activeProfile(targetId);
-            status = "Manual selection cleared; nearest player will be used.";
-        }).bounds(x + 208, y + 108, w - 226, 22).build());
-        addRenderableWidget(Button.builder(Component.literal("New Preset"), b -> newPreset())
-                .bounds(x + 18, y + 146, 112, 22).build());
-        addRenderableWidget(Button.builder(Component.literal("Next Preset"), b -> nextPreset())
-                .bounds(x + 138, y + 146, 112, 22).build());
-        addRenderableWidget(Button.builder(Component.literal("Delete Preset"), b -> deletePreset())
-                .bounds(x + 258, y + 146, w - 276, 22).build());
+            status = "Automatic targeting enabled.";
+            rebuild();
+        }).bounds(x + 16 + half + gap, y + 91, half, 22).build());
+
+        addRenderableWidget(Button.builder(Component.literal("New"), b -> newPreset())
+                .bounds(x + 16, y + 121, third, 22).build());
+        addRenderableWidget(Button.builder(Component.literal("Next"), b -> nextPreset())
+                .bounds(x + 16 + third + gap, y + 121, third, 22).build());
+        addRenderableWidget(Button.builder(Component.literal("Delete"), b -> deletePreset())
+                .bounds(x + 16 + (third + gap) * 2, y + 121, third, 22).build());
+
         addRenderableWidget(Button.builder(Component.literal("Color: " + colorName()), b -> {
             colorIndex = (colorIndex + 1) % COLORS.length;
             selectedColor = COLORS[colorIndex];
@@ -102,20 +137,16 @@ public final class GlaxotionScreen extends Screen {
                 IdentityRenderHooks.refresh(targetId);
             }
             b.setMessage(Component.literal("Color: " + colorName()));
-        }).bounds(x + 18, y + 190, 180, 22).build());
-        addRenderableWidget(Button.builder(Component.literal("Range: " + (int) GlaxotionState.TARGETS.range() + " blocks"), b -> {
+            status = "Name color updated.";
+        }).bounds(x + 16, y + 151, half, 22).build());
+        addRenderableWidget(Button.builder(Component.literal("Range: " + (int) GlaxotionState.TARGETS.range()), b -> {
             int current = 0;
             for (int i = 0; i < RANGES.length; i++) if (RANGES[i] == GlaxotionState.TARGETS.range()) current = i;
             double next = RANGES[(current + 1) % RANGES.length];
             GlaxotionState.TARGETS.setRange(next);
-            b.setMessage(Component.literal("Range: " + (int) next + " blocks"));
-        }).bounds(x + 208, y + 190, w - 226, 22).build());
-    }
-
-    private void rebuild() {
-        clearWidgets();
-        if (page == 0) buildIdentityPage();
-        else buildTargetPage();
+            b.setMessage(Component.literal("Range: " + (int) next));
+            status = "Target range set to " + (int) next + " blocks.";
+        }).bounds(x + 16 + half + gap, y + 151, half, 22).build());
     }
 
     private void loadFields(IdentityProfile profile) {
@@ -141,7 +172,7 @@ public final class GlaxotionScreen extends Screen {
 
     private void save() {
         if (targetId == null) {
-            status = "No player target. Open Target & Presets and select another loaded player first.";
+            status = "No target. Open Targets and select a nearby player first.";
             return;
         }
         IdentityProfile profile = new IdentityProfile(
@@ -153,15 +184,14 @@ public final class GlaxotionScreen extends Screen {
             GlaxotionState.IDENTITIES.update(targetId, profile);
             loadedProfile = profile;
             IdentityRenderHooks.refresh(targetId);
-            status = "Saved for " + targetId.toString().substring(0, 8) + ". Skin: " + (profile.skinSourceUsername().isBlank() ? "unchanged" : "lookup started");
+            status = "Profile saved. Skin lookup starts in the background.";
         } catch (RuntimeException e) {
-            status = "Save failed: " + e.getMessage();
+            status = "Save failed: " + e.getClass().getSimpleName();
         }
     }
 
     private void newPreset() {
         loadedProfile = null;
-        status = "New preset selected. Return to Identity Editor to enter its values and save.";
         page = 0;
         rebuild();
         profileName.setValue("Preset " + (targetId == null ? 1 : GlaxotionState.IDENTITIES.profiles(targetId).size() + 1));
@@ -169,20 +199,22 @@ public final class GlaxotionScreen extends Screen {
         displayedName.setValue("");
         customTier.setValue("");
         tier = PvpTier.HT3;
+        status = "New preset ready. Edit it and press Save.";
     }
 
     private void nextPreset() {
         if (targetId == null) { status = "Select a player first."; return; }
         var profiles = GlaxotionState.IDENTITIES.profiles(targetId);
-        if (profiles.isEmpty()) { status = "No saved presets for this player."; return; }
+        if (profiles.isEmpty()) { status = "No saved presets yet."; return; }
         int index = -1;
         if (loadedProfile != null) for (int i = 0; i < profiles.size(); i++)
             if (profiles.get(i).id().equals(loadedProfile.id())) index = i;
         loadedProfile = profiles.get((index + 1) % profiles.size());
         GlaxotionState.IDENTITIES.select(targetId, loadedProfile.id());
-        page = 0; rebuild();
+        page = 0;
+        rebuild();
         loadFields(loadedProfile);
-        status = "Loaded preset: " + loadedProfile.profileName();
+        status = "Loaded " + loadedProfile.profileName() + ".";
     }
 
     private void deletePreset() {
@@ -190,6 +222,8 @@ public final class GlaxotionScreen extends Screen {
         GlaxotionState.IDENTITIES.remove(targetId, loadedProfile.id());
         loadedProfile = GlaxotionState.IDENTITIES.activeProfile(targetId);
         status = "Preset deleted.";
+        page = 0;
+        rebuild();
     }
 
     private void nextPlayer() {
@@ -201,7 +235,10 @@ public final class GlaxotionScreen extends Screen {
                 .filter(p -> p != minecraft.player)
                 .filter(p -> minecraft.player.distanceToSqr(p) <= GlaxotionState.TARGETS.range() * GlaxotionState.TARGETS.range())
                 .toList();
-        if (players.isEmpty()) { status = "No other loaded players within " + (int) GlaxotionState.TARGETS.range() + " blocks."; return; }
+        if (players.isEmpty()) {
+            status = "No other loaded players in range.";
+            return;
+        }
         int index = -1;
         for (int i = 0; i < players.size(); i++) if (players.get(i).getUUID().equals(targetId)) index = i;
         var chosen = players.get((index + 1) % players.size());
@@ -213,26 +250,29 @@ public final class GlaxotionScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        int x = panelX, y = panelY, w = panelWidth, h = panelHeight;
         graphics.fill(0, 0, width, height, 0xB9000000);
+        int x = panelX, y = panelY, w = panelWidth, h = panelHeight;
         graphics.fill(x, y, x + w, y + h, 0xF20A111B);
         graphics.fill(x, y, x + w, y + 3, 0xFF32C5E8);
-        graphics.text(font, "GLAXOTION", x + 18, y + 15, 0xFFFFFFFF, true);
-        graphics.text(font, page == 0 ? "IDENTITY EDITOR  •  1 / 2" : "TARGET & PRESETS  •  2 / 2", x + 18, y + 36, 0xFF74D4E8, false);
+        graphics.text(font, "GLAXOTION", x + 16, y + 12, 0xFFFFFFFF, true);
+        graphics.text(font, page == 0 ? "IDENTITY STUDIO" : "TARGETS & PRESETS", x + 16, y + 29, 0xFF74D4E8, false);
+
         if (page == 0) {
-            graphics.text(font, "PROFILE NAME", x + 18, y + 60, 0xFF9CB7C8, false);
-            graphics.text(font, "SKIN SOURCE JAVA USERNAME", x + 18, y + 104, 0xFF9CB7C8, false);
-            graphics.text(font, "DISPLAYED IGN", x + 18, y + 148, 0xFF9CB7C8, false);
-            graphics.text(font, "CUSTOM TIER LABEL", x + 18, y + 192, 0xFF9CB7C8, false);
-            if (targetId != null) graphics.text(font, IdentityRenderHooks.skinStatus(targetId), x + 18, y + 272, 0xFF74D4E8, false);
+            int fieldStep = Math.max(25, Math.min(39, (h - 112) / 4));
+            int start = 43;
+            graphics.text(font, "PROFILE NAME", x + 16, y + start, 0xFF9CB7C8, false);
+            graphics.text(font, "SKIN SOURCE (JAVA USERNAME)", x + 16, y + start + fieldStep, 0xFF9CB7C8, false);
+            graphics.text(font, "DISPLAYED IGN", x + 16, y + start + fieldStep * 2, 0xFF9CB7C8, false);
+            graphics.text(font, "CUSTOM TIER LABEL", x + 16, y + start + fieldStep * 3, 0xFF9CB7C8, false);
+            if (targetId != null) graphics.text(font, IdentityRenderHooks.skinStatus(targetId), x + 16, y + h - 65, 0xFF74D4E8, false);
         } else {
-            String target = targetId == null ? "No target selected" : "Target: " + targetId.toString().substring(0, 8);
-            graphics.text(font, target, x + 18, y + 56, 0xFFFFFFFF, false);
-            graphics.text(font, "Select a loaded player, then edit and save their local profile.", x + 18, y + 230, 0xFF9CB7C8, false);
+            String target = targetId == null ? "No target selected" : "Target ID: " + targetId.toString().substring(0, 8);
+            graphics.text(font, target, x + 16, y + 76, 0xFFFFFFFF, false);
         }
-        graphics.fill(x + 12, y + h - 45, x + w - 12, y + h - 44, 0xFF30404D);
-        graphics.text(font, status, x + 18, y + h - 32, 0xFF74D4E8, false);
-        graphics.text(font, "ESC  Close", x + w - 82, y + h - 16, 0xFF9CB7C8, false);
+
+        graphics.fill(x + 12, y + h - 31, x + w - 12, y + h - 30, 0xFF30404D);
+        String shortStatus = status.length() > Math.max(18, (w - 32) / 5) ? status.substring(0, Math.max(15, (w - 44) / 5)) + "…" : status;
+        graphics.text(font, shortStatus, x + 16, y + h - 23, 0xFF74D4E8, false);
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
