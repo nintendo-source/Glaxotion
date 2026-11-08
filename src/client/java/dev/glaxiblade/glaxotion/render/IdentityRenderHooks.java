@@ -66,7 +66,7 @@ public final class IdentityRenderHooks {
                 // Supply the exact Mojang textures property (including its
                 // signature when present) so SkinManager can resolve Dream's
                 // actual texture rather than falling back to the default skin.
-                sourceProfile.getProperties().put("textures",
+                sourceProfile.properties().put("textures",
                         skin.texturePropertySignature() == null
                                 ? new Property("textures", skin.texturePropertyValue())
                                 : new Property("textures", skin.texturePropertyValue(), skin.texturePropertySignature()));
